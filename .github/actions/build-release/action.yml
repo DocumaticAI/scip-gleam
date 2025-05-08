@@ -1,5 +1,5 @@
-name: "Build Gleam"
-description: "Build Gleam Release"
+name: "Build SCIP-Gleam"
+description: "Build SCIP-Gleam Release"
 inputs:
   version:
     description: "Build Version"
@@ -70,7 +70,7 @@ runs:
       if: ${{ inputs.expected-binary-architecture }}
       shell: bash
       run: |
-        BINARY_PATH="target/${{ inputs.target }}/release/gleam"
+        BINARY_PATH="target/${{ inputs.target }}/release/scip-gleam"
         if [[ "${{ inputs.target }}" == *"windows"* ]]; then
           BINARY_PATH="${BINARY_PATH}.exe"
         fi
@@ -89,21 +89,21 @@ runs:
       run: |
         case "$TARGET" in
           *windows*)
-            ARCHIVE="gleam-$VERSION-$TARGET.zip"
-            cp "target/$TARGET/release/gleam.exe" "gleam.exe"
-            7z a "$ARCHIVE" "gleam.exe"
-            rm gleam.exe
+            ARCHIVE="scip-gleam-$VERSION-$TARGET.zip"
+            cp "target/$TARGET/release/scip-gleam.exe" "scip-gleam.exe"
+            7z a "$ARCHIVE" "scip-gleam.exe"
+            rm scip-gleam.exe
             ;;
           wasm*)
-            ARCHIVE="gleam-$VERSION-browser.tar.gz"
+            ARCHIVE="scip-gleam-$VERSION-browser.tar.gz"
             tar -C compiler-wasm/pkg/ -czvf $ARCHIVE .
             rm -rf compiler-wasm/pkg/
             ;;
           *)
-            ARCHIVE="gleam-$VERSION-$TARGET.tar.gz"
-            cp "target/$TARGET/release/gleam" "gleam"
-            tar -czvf "$ARCHIVE" "gleam"
-            rm gleam
+            ARCHIVE="scip-gleam-$VERSION-$TARGET.tar.gz"
+            cp "target/$TARGET/release/scip-gleam" "scip-gleam"
+            tar -czvf "$ARCHIVE" "scip-gleam"
+            rm scip-gleam
             ;;
         esac
 
@@ -119,14 +119,14 @@ runs:
         case "$TARGET" in
           *windows*)
             7z x "$ARCHIVE"
-            ./gleam.exe --version
+            ./scip-gleam.exe --version
             ;;
           aarch64*)
             echo "We cannot test an ARM binary on a AMD64 runner"
             ;;
           *)
             tar -xvzf "$ARCHIVE"
-            ./gleam --version
+            ./scip-gleam --version
             ;;
         esac
       env:
@@ -137,7 +137,7 @@ runs:
     # (SPDX and CycloneDX) for the gleam build.
     # We store those files alongside the build artifacts on the GitHub Release
     # page and also use them to create Container SBoMs for Docker images.
-    # 
+    #
     # Why is this helpful?
     # * It gives us and our users complete visibility into which dependencies
     #   and which versions are present in the build / container image.

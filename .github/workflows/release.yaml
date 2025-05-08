@@ -27,7 +27,7 @@ jobs:
           - aarch64-apple-darwin
           - x86_64-pc-windows-msvc
           - aarch64-pc-windows-msvc
-        toolchain: [ stable ]
+        toolchain: [stable]
         include:
           - os: ubuntu-latest
             target: x86_64-unknown-linux-musl
@@ -74,7 +74,7 @@ jobs:
   create-release:
     name: create-release
 
-    needs: ['build-release']
+    needs: ["build-release"]
 
     runs-on: ubuntu-latest
 
@@ -90,11 +90,11 @@ jobs:
 
       - name: Create release
         env:
-          GITHUB_TOKEN: '${{ github.token }}'
-          REPOSITORY: '${{ github.repository }}'
-          TITLE: '${{ github.ref_name }}'
-          TAG_NAME: '${{ github.ref_name }}'
-          NOTES: '${{ github.server_url }}/${{ github.repository }}/blob/${{ github.ref_name }}/CHANGELOG.md'
+          GITHUB_TOKEN: "${{ github.token }}"
+          REPOSITORY: "${{ github.repository }}"
+          TITLE: "${{ github.ref_name }}"
+          TAG_NAME: "${{ github.ref_name }}"
+          NOTES: "${{ github.server_url }}/${{ github.repository }}/blob/${{ github.ref_name }}/CHANGELOG.md"
         run: |
           gh release create \
             --repo "$REPOSITORY" \
@@ -104,4 +104,4 @@ jobs:
             --verify-tag \
             ${{ contains(github.ref_name, '-rc') && '--prerelease' || '' }} \
             "$TAG_NAME" \
-            gleam-*
+            scip-gleam-*

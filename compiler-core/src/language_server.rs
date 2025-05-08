@@ -16,6 +16,7 @@ mod signature_help;
 #[cfg(test)]
 mod tests;
 
+pub use compiler::LspProjectCompiler;
 pub use server::LanguageServer;
 
 use crate::{

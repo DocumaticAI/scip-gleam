@@ -61,6 +61,7 @@ termcolor.workspace = true
 toml.workspace = true
 tracing.workspace = true
 walkdir.workspace = true
+scip = "0.5.2"
 
 [dev-dependencies]
 # Creation of temporary directories

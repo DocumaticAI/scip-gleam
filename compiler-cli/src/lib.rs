@@ -73,6 +73,7 @@ mod panic;
 mod publish;
 mod remove;
 pub mod run;
+mod scip;
 mod shell;
 
 use config::root_config;
@@ -129,7 +130,7 @@ struct TreeOptions {
 #[derive(Parser, Debug)]
 #[command(
     version,
-    name = "gleam",
+    name = "scip-gleam",
     next_display_order = None,
     help_template = "\
 {before-help}{name} {version}
@@ -143,7 +144,18 @@ struct TreeOptions {
         .literal(styling::AnsiColor::Green.on_default())
 )]
 enum Command {
+    /// Run a SCIP index in the target repo
+    Index {
+        /// Location of the project root to index
+        project_root: Utf8PathBuf,
+
+        /// Location of the output SCIP file
+        #[arg(long = "output", short, default_value = "index.scip")]
+        output_file: Utf8PathBuf,
+    },
+
     /// Build the project
+    #[command(hide = true)]
     Build {
         /// Emit compile time warnings as errors
         #[arg(long)]
@@ -158,6 +170,7 @@ enum Command {
     },
 
     /// Type check the project
+    #[command(hide = true)]
     Check {
         #[arg(short, long, ignore_case = true, help = target_doc())]
         target: Option<Target>,
@@ -169,7 +182,7 @@ enum Command {
     ///
     /// - HEXPM_API_KEY: (optional) A Hex API key to use instead of authenticating.
     ///
-    #[command(verbatim_doc_comment)]
+    #[command(verbatim_doc_comment, hide = true)]
     Publish {
         #[arg(long)]
         replace: bool,
@@ -178,24 +191,27 @@ enum Command {
     },
 
     /// Render HTML documentation
-    #[command(subcommand)]
+    #[command(subcommand, hide = true)]
     Docs(Docs),
 
     /// Work with dependency packages
-    #[command(subcommand)]
+    #[command(subcommand, hide = true)]
     Deps(Dependencies),
 
     /// Update dependency packages to their latest versions
+    #[command(hide = true)]
     Update(UpdateOptions),
 
     /// Work with the Hex package manager
-    #[command(subcommand)]
+    #[command(subcommand, hide = true)]
     Hex(Hex),
 
     /// Create a new project
+    #[command(hide = true)]
     New(NewOptions),
 
     /// Format source code
+    #[command(hide = true)]
     Format {
         /// Files to format
         #[arg(default_value = ".")]
@@ -210,13 +226,15 @@ enum Command {
         check: bool,
     },
     /// Rewrite deprecated Gleam code
+    #[command(hide = true)]
     Fix,
 
     /// Start an Erlang shell
+    #[command(hide = true)]
     Shell,
 
     /// Run the project
-    #[command(trailing_var_arg = true)]
+    #[command(trailing_var_arg = true, hide = true)]
     Run {
         #[arg(short, long, ignore_case = true, help = target_doc())]
         target: Option<Target>,
@@ -236,7 +254,7 @@ enum Command {
     },
 
     /// Run the project tests
-    #[command(trailing_var_arg = true)]
+    #[command(trailing_var_arg = true, hide = true)]
     Test {
         #[arg(short, long, ignore_case = true, help = target_doc())]
         target: Option<Target>,
@@ -248,7 +266,7 @@ enum Command {
     },
 
     /// Run the project development entrypoint
-    #[command(trailing_var_arg = true)]
+    #[command(trailing_var_arg = true, hide = true)]
     Dev {
         #[arg(short, long, ignore_case = true, help = target_doc())]
         target: Option<Target>,
@@ -268,6 +286,7 @@ enum Command {
     PrintConfig,
 
     /// Add new project dependencies
+    #[command(hide = true)]
     Add {
         /// The names of Hex packages to add
         #[arg(required = true)]
@@ -279,6 +298,7 @@ enum Command {
     },
 
     /// Remove project dependencies
+    #[command(hide = true)]
     Remove {
         /// The names of packages to remove
         #[arg(required = true)]
@@ -286,14 +306,15 @@ enum Command {
     },
 
     /// Clean build artifacts
+    #[command(hide = true)]
     Clean,
 
     /// Run the language server, to be used by editors
-    #[command(name = "lsp")]
+    #[command(name = "lsp", hide = true)]
     LanguageServer,
 
     /// Export something useful from the Gleam project
-    #[command(subcommand)]
+    #[command(subcommand, hide = true)]
     Export(ExportTarget),
 }
 
@@ -511,6 +532,11 @@ pub fn main() {
 
 fn parse_and_run_command() -> Result<(), Error> {
     match Command::parse() {
+        Command::Index {
+            project_root,
+            output_file,
+        } => scip::main(project_root, output_file),
+
         Command::Build {
             target,
             warnings_as_errors,

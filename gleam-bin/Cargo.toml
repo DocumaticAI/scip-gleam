@@ -1,5 +1,5 @@
 [package]
-name = "gleam"
+name = "scip-gleam"
 version = "1.10.0"
 authors = ["Louis Pilfold <louis@lpil.uk>"]
 edition = "2024"

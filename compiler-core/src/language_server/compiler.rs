@@ -1,5 +1,6 @@
 use debug_ignore::DebugIgnore;
 use ecow::EcoString;
+use hexpm::version::Version;
 use itertools::Itertools;
 
 use crate::{
@@ -120,7 +121,7 @@ where
         };
 
         // Store the compiled dependency module information
-        for module in &compiled_dependencies {
+        for ((package_name, package_version), module) in &compiled_dependencies {
             let path = module.input_path.as_os_str().to_string_lossy().to_string();
             // strip canonicalised windows prefix
             #[cfg(target_family = "windows")]
@@ -129,7 +130,12 @@ where
                 .map(|s| s.to_string())
                 .unwrap_or(path);
             let line_numbers = LineNumbers::new(&module.code);
-            let source = ModuleSourceInformation { path, line_numbers };
+            let source = ModuleSourceInformation {
+                path,
+                line_numbers,
+                package_name: package_name.clone(),
+                package_version: package_version.clone(),
+            };
             _ = self.sources.insert(module.name.clone(), source);
         }
 
@@ -150,7 +156,18 @@ where
                 .map(|s| s.to_string())
                 .unwrap_or(path);
             let line_numbers = module.line_numbers.clone();
-            let source = ModuleSourceInformation { path, line_numbers };
+            let source = ModuleSourceInformation {
+                path,
+                line_numbers,
+                package_name: module.package.clone(),
+                package_version: self
+                    .project_compiler
+                    .packages
+                    .get(&module.package.to_string())
+                    .unwrap()
+                    .version
+                    .clone(),
+            };
             _ = self.sources.insert(name.clone(), source);
         }
 
@@ -169,14 +186,19 @@ where
         // Record the compiled dependency modules
         let mut compiled_modules = compiled_dependencies
             .into_iter()
-            .map(|m| m.input_path)
+            .map(|(_, m)| m.input_path)
             .collect_vec();
 
         // Store the compiled module information
         for module in modules {
             let path = module.input_path.as_os_str().to_string_lossy().to_string();
             let line_numbers = LineNumbers::new(&module.code);
-            let source = ModuleSourceInformation { path, line_numbers };
+            let source = ModuleSourceInformation {
+                path,
+                line_numbers,
+                package_name: self.project_compiler.config.name.clone(),
+                package_version: self.project_compiler.config.version.clone(),
+            };
             // Record that this one has been compiled. This is returned by this
             // function and is used to determine what diagnostics to reset.
             compiled_modules.push(module.input_path.clone());
@@ -214,4 +236,12 @@ pub struct ModuleSourceInformation {
     /// Useful for converting from Gleam's byte index offsets to the LSP line
     /// and column number positions.
     pub line_numbers: LineNumbers,
+
+    /// Used exclusively in SCIP stuff - needed to create a symbol with the
+    /// package name
+    pub package_name: EcoString,
+
+    /// Used exclusively in SCIP stuff - needed to create a symbol with the
+    /// package version
+    pub package_version: Version,
 }

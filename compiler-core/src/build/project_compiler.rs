@@ -193,6 +193,10 @@ where
 
         // Dependencies are compiled first.
         let compiled_dependency_modules = self.compile_dependencies()?;
+        let compiled_dependency_modules = compiled_dependency_modules
+            .into_iter()
+            .map(|(_, m)| m)
+            .collect::<Vec<_>>();
 
         // We reset the warning count as we don't want to fail the build if a
         // dependency has warnings, only if the root package does.
@@ -261,17 +265,23 @@ where
             })
     }
 
-    pub fn compile_dependencies(&mut self) -> Result<Vec<Module>, Error> {
+    pub fn compile_dependencies(&mut self) -> Result<Vec<((EcoString, Version), Module)>, Error> {
         assert!(
             self.stale_modules.is_empty(),
             "The project compiler stale tracker was not emptied from the previous compilation"
         );
 
         let sequence = order_packages(&self.packages)?;
-        let mut modules = vec![];
+        // Keep package name with the module
+        let mut modules: Vec<((EcoString, Version), Module)> = vec![];
 
         for name in sequence {
+            let package = self.packages.get(&name.to_string()).unwrap().clone();
             let compiled = self.load_cache_or_compile_package(&name)?;
+            let compiled = compiled
+                .into_iter()
+                .map(|module| ((name.clone(), package.version.clone()), module))
+                .collect::<Vec<_>>();
             modules.extend(compiled);
         }
 

@@ -16,8 +16,8 @@ use gleam_core::{
 };
 use hexpm::version::Version;
 use scip::types::{
-    Descriptor, Index, Occurrence, Package, Symbol, SymbolInformation, descriptor::Suffix,
-    symbol_information::Kind,
+    Descriptor, Index, Occurrence, Package, Symbol, SymbolInformation, SymbolRole,
+    descriptor::Suffix, symbol_information::Kind,
 };
 use scip::{
     symbol::format_symbol,
@@ -225,9 +225,17 @@ pub fn main(path: Utf8PathBuf, output_file: Utf8PathBuf) -> Result<()> {
                                 (end.column as i32) - 1,
                             ];
 
+                            let symbol_roles =
+                                if symbols.iter().find(|sym| sym.symbol == symbol).is_some() {
+                                    SymbolRole::Definition
+                                } else {
+                                    SymbolRole::UnspecifiedSymbolRole
+                                };
+
                             Occurrence {
                                 symbol,
                                 range: byte_range,
+                                symbol_roles: symbol_roles as i32,
                                 ..Default::default()
                             }
                         })
@@ -238,7 +246,11 @@ pub fn main(path: Utf8PathBuf, output_file: Utf8PathBuf) -> Result<()> {
             Document {
                 language: "gleam".to_string(),
                 position_encoding: PositionEncoding::UTF8CodeUnitOffsetFromLineStart.into(),
-                relative_path: module.input_path.to_string().replacen(path.as_str(), "", 1),
+                relative_path: module.input_path.to_string().replacen(
+                    format!("{}/", path).as_str(),
+                    "",
+                    1,
+                ),
                 symbols,
                 occurrences,
                 ..Default::default()

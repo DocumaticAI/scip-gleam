@@ -84,7 +84,7 @@ pub fn main(path: Utf8PathBuf, output_file: Utf8PathBuf) -> Result<()> {
         .modules
         .values()
         .map(|module| {
-            let symbols = module
+            let symbols_with_locations = module
                 .ast
                 .definitions
                 .iter()
@@ -117,37 +117,42 @@ pub fn main(path: Utf8PathBuf, output_file: Utf8PathBuf) -> Result<()> {
                             // }
                             // ```
 
-                            let mut type_symbols = vec![SymbolInformation {
-                                symbol: format_symbol(create_scip_symbol(
-                                    config.name.to_string(),
-                                    config.version.to_string(),
-                                    module.name.to_string(),
-                                    type_.name.clone(),
-                                    Suffix::Type,
-                                )),
-                                display_name: type_.name.to_string(),
-                                documentation: format_doc(def.get_doc()),
-                                kind: Kind::Type.into(),
-                                ..Default::default()
-                            }];
+                            let mut type_symbols = vec![(
+                                SymbolInformation {
+                                    symbol: format_symbol(create_scip_symbol(
+                                        config.name.to_string(),
+                                        config.version.to_string(),
+                                        module.name.to_string(),
+                                        type_.name.clone(),
+                                        Suffix::Type,
+                                    )),
+                                    display_name: type_.name.to_string(),
+                                    documentation: format_doc(def.get_doc()),
+                                    kind: Kind::Type.into(),
+                                    ..Default::default()
+                                },
+                                def.location(),
+                            )];
 
                             let constructor_symbols =
-                                type_
-                                    .constructors
-                                    .iter()
-                                    .map(|constructor| SymbolInformation {
-                                        symbol: format_symbol(create_scip_symbol(
-                                            config.name.to_string(),
-                                            config.version.to_string(),
-                                            module.name.to_string(),
-                                            constructor.name.clone(),
-                                            Suffix::Method,
-                                        )),
-                                        display_name: constructor.name.to_string(),
-                                        documentation: format_doc(def.get_doc()),
-                                        kind: Kind::Function.into(),
-                                        ..Default::default()
-                                    });
+                                type_.constructors.iter().map(|constructor| {
+                                    (
+                                        SymbolInformation {
+                                            symbol: format_symbol(create_scip_symbol(
+                                                config.name.to_string(),
+                                                config.version.to_string(),
+                                                module.name.to_string(),
+                                                constructor.name.clone(),
+                                                Suffix::Method,
+                                            )),
+                                            display_name: constructor.name.to_string(),
+                                            documentation: format_doc(def.get_doc()),
+                                            kind: Kind::Function.into(),
+                                            ..Default::default()
+                                        },
+                                        constructor.location,
+                                    )
+                                });
 
                             type_symbols.extend(constructor_symbols);
                             type_symbols
@@ -159,19 +164,22 @@ pub fn main(path: Utf8PathBuf, output_file: Utf8PathBuf) -> Result<()> {
                                 .map(|(_loc, name)| name)
                                 .unwrap_or("todo-unknown".into());
 
-                            vec![SymbolInformation {
-                                symbol: format_symbol(create_scip_symbol(
-                                    config.name.to_string(),
-                                    config.version.to_string(),
-                                    module.name.to_string(),
-                                    function_name.clone(),
-                                    Suffix::Method,
-                                )),
-                                display_name: function_name.to_string(),
-                                documentation: format_doc(def.get_doc()),
-                                kind: Kind::Function.into(),
-                                ..Default::default()
-                            }]
+                            vec![(
+                                SymbolInformation {
+                                    symbol: format_symbol(create_scip_symbol(
+                                        config.name.to_string(),
+                                        config.version.to_string(),
+                                        module.name.to_string(),
+                                        function_name.clone(),
+                                        Suffix::Method,
+                                    )),
+                                    display_name: function_name.to_string(),
+                                    documentation: format_doc(def.get_doc()),
+                                    kind: Kind::Function.into(),
+                                    ..Default::default()
+                                },
+                                def.location(),
+                            )]
                         }
                     }
                 })
@@ -225,12 +233,19 @@ pub fn main(path: Utf8PathBuf, output_file: Utf8PathBuf) -> Result<()> {
                                 (end.column as i32) - 1,
                             ];
 
-                            let symbol_roles =
-                                if symbols.iter().find(|sym| sym.symbol == symbol).is_some() {
-                                    SymbolRole::Definition
-                                } else {
-                                    SymbolRole::UnspecifiedSymbolRole
-                                };
+                            let symbol_roles = if symbols_with_locations
+                                .iter()
+                                .find(|(sym, loc)| {
+                                    sym.symbol == symbol
+                                        && loc.contains(reference.location.start)
+                                        && loc.contains(reference.location.end)
+                                })
+                                .is_some()
+                            {
+                                SymbolRole::Definition
+                            } else {
+                                SymbolRole::UnspecifiedSymbolRole
+                            };
 
                             Occurrence {
                                 symbol,
@@ -251,7 +266,10 @@ pub fn main(path: Utf8PathBuf, output_file: Utf8PathBuf) -> Result<()> {
                     "",
                     1,
                 ),
-                symbols,
+                symbols: symbols_with_locations
+                    .iter()
+                    .map(|(symbol, _)| symbol.clone())
+                    .collect(),
                 occurrences,
                 ..Default::default()
             }

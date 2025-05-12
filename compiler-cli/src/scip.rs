@@ -64,7 +64,7 @@ pub fn main(path: Utf8PathBuf, output_file: Utf8PathBuf) -> Result<()> {
     let outcome = compiler.compile();
 
     match outcome {
-        Outcome::TotalFailure(..) => panic!("Failed to parse"),
+        Outcome::TotalFailure(error) => panic!("Failed to compile project: {}", error),
         _ => (),
     }
 
@@ -185,7 +185,10 @@ pub fn main(path: Utf8PathBuf, output_file: Utf8PathBuf) -> Result<()> {
                 })
                 .collect::<Vec<_>>();
 
-            let this_module_source = compiler.sources.get(&module.name).unwrap();
+            let this_module_source = compiler
+                .sources
+                .get(&module.name)
+                .expect("Module source not found");
             let occurrences = module
                 .ast
                 .type_info

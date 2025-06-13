@@ -14,7 +14,7 @@ jobs:
     name: publish-container-images
     runs-on: ubuntu-latest
     # Covered by `release-nightly.yaml`
-    if: ${{ github.event.release.tag_name != 'nightly' }}
+    if: ${{ github.event.release.tag_name != 'nightly' }} && github.repository == 'gleam-lang/gleam'
     strategy:
       matrix:
         base-image:
